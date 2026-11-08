@@ -27,7 +27,7 @@ Open http://localhost:8000, press **Start call**, and talk.
 
 ## Knowledge base
 
-Every `.txt` or `.md` file in `knowledge/` is loaded at startup. The sample files describe a fictional coffee brand, Marlow & Pine. Replace them with your own content. `test_questions.md` holds sample questions to check the answers.
+Every `.txt` or `.md` file in `knowledge/` is loaded at startup and split into sections at each `## ` heading. On every turn only the sections that match the question are sent to the model, which keeps replies fast and stays under Groq's free token-per-minute limit. Use clear `## ` headings and plain words a customer would say. The sample files describe a fictional coffee brand, Marlow & Pine. Replace them with your own content. `test_questions.md` holds sample questions to check the answers.
 
 ## Deploy
 

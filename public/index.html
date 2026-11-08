@@ -81,11 +81,13 @@ const startBtn = $("start"), hangBtn = $("hangup");
 const TICK_MS = 30;
 const CALIBRATION_TICKS = 33;   // ~1 s of silence to learn background noise
 const MIN_SPEECH_MS = 120;      // sound this long counts as speech
-const SILENCE_END_MS = 800;     // quiet this long ends your turn
+const SILENCE_END_MS = 600;     // quiet this long ends your turn
 const BARGE_IN_MS = 600;        // talking this long over the agent interrupts it
 
 const messages = [];  // conversation so far, sent with every turn (the server keeps no state)
-let stream, ctx, analyser, buf, timer, recorder, chunks = [], currentAudio = null;
+let stream, ctx, analyser, buf, timer, recorder, chunks = [];
+// Streaming playback state: the reply audio arrives as raw PCM and is scheduled chunk by chunk.
+let streamAbort = null, sources = [], nextTime = 0, pcmRate = 24000, carryByte = null, streamDone = true;
 let threshold = 0.01, noise = [], mode = "idle";
 let speechMs = 0, silenceMs = 0, loudMs = 0;
 
@@ -158,8 +160,7 @@ function tick() {
     loudMs = isSpeech ? loudMs + TICK_MS : 0;
     if (loudMs >= BARGE_IN_MS) {
       stopPlayback();
-      speechMs = 0;
-      setMode("listening", "Connected. Just start talking.");
+      backToListening();
     }
   } else if (mode === "listening") {
     if (isSpeech) {
@@ -194,54 +195,136 @@ function stopRecording() {
   recorder.stop();
 }
 
+function backToListening() {
+  speechMs = 0;
+  setMode("listening", "Connected. Just start talking.");
+}
+
+function concatBytes(a, b) {
+  const out = new Uint8Array(a.length + b.length);
+  out.set(a, 0);
+  out.set(b, a.length);
+  return out;
+}
+
 async function sendTurn(blob) {
   const form = new FormData();
   form.append("audio", blob, "speech.webm");
   form.append("history", JSON.stringify(messages.slice(-20)));
+  const controller = new AbortController();
+  streamAbort = controller;
   try {
-    const res = await fetch("/api/turn", { method: "POST", body: form });
+    const res = await fetch("/api/turn", { method: "POST", body: form, signal: controller.signal });
     if (!res.ok) {
       let detail = await res.text();
       try { detail = JSON.parse(detail).detail || detail; } catch (_) {}
       throw new Error(detail);
     }
-    const data = await res.json();
-    if (mode !== "busy") return;  // hung up meanwhile
-    if (!data.reply) {
-      setMode("listening", "Connected. Just start talking.");
-      return;
-    }
-    messages.push({ role: "user", content: data.user_text }, { role: "assistant", content: data.reply });
-    addLine("You", data.user_text);
-    addLine("Agent", data.reply);
-    play(data.audio);
+    await playStream(res.body.getReader());
   } catch (err) {
+    if (err.name === "AbortError") return;  // interrupted or hung up
     addLine("Error", err.message);
-    if (mode === "busy") setMode("listening", "Connected. Just start talking.");
+    stopPlayback();
+    if (mode === "busy" || mode === "speaking") backToListening();
   }
 }
 
-function play(b64) {
-  loudMs = 0;
-  setMode("speaking", "Agent speaking... (talk to interrupt)");
-  currentAudio = new Audio("data:audio/wav;base64," + b64);
-  currentAudio.onended = () => {
-    if (mode === "speaking") {
-      speechMs = 0;
-      setMode("listening", "Connected. Just start talking.");
+// The response is one JSON line (texts, sample rate) followed by raw 16-bit PCM audio.
+// Audio starts playing as soon as the first chunk arrives, while the rest is still generated.
+async function playStream(reader) {
+  let head = new Uint8Array(0);
+  let gotHeader = false;
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    if (mode !== "busy" && mode !== "speaking") {  // hung up or interrupted meanwhile
+      reader.cancel();
+      return;
     }
+    let bytes = value;
+    if (!gotHeader) {
+      head = concatBytes(head, bytes);
+      const newline = head.indexOf(10);
+      if (newline === -1) continue;
+      const info = JSON.parse(new TextDecoder().decode(head.subarray(0, newline)));
+      bytes = head.subarray(newline + 1);
+      gotHeader = true;
+      if (!info.reply) {  // nothing was understood
+        reader.cancel();
+        backToListening();
+        return;
+      }
+      messages.push({ role: "user", content: info.user_text }, { role: "assistant", content: info.reply });
+      addLine("You", info.user_text);
+      addLine("Agent", info.reply);
+      beginSpeaking(info.sample_rate);
+    }
+    if (bytes.length) queuePcm(bytes);
+  }
+  streamDone = true;
+  maybeFinishSpeaking();
+}
+
+function beginSpeaking(rate) {
+  pcmRate = rate;
+  nextTime = 0;
+  carryByte = null;
+  streamDone = false;
+  loudMs = 0;
+  ctx.resume();
+  setMode("speaking", "Agent speaking... (talk to interrupt)");
+}
+
+function queuePcm(bytes) {
+  if (carryByte !== null) {  // a 16-bit sample was split across two network chunks
+    const merged = new Uint8Array(bytes.length + 1);
+    merged[0] = carryByte;
+    merged.set(bytes, 1);
+    bytes = merged;
+    carryByte = null;
+  }
+  if (bytes.length % 2) {
+    carryByte = bytes[bytes.length - 1];
+    bytes = bytes.subarray(0, bytes.length - 1);
+  }
+  const count = bytes.length / 2;
+  if (!count) return;
+
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+  const audioBuffer = ctx.createBuffer(1, count, pcmRate);
+  const samples = audioBuffer.getChannelData(0);
+  for (let i = 0; i < count; i++) samples[i] = view.getInt16(i * 2, true) / 32768;
+
+  const source = ctx.createBufferSource();
+  source.buffer = audioBuffer;
+  source.connect(ctx.destination);
+  // Chain chunks back to back so playback is gapless. The first chunk starts 150 ms from now, a small
+  // cushion so network jitter in the next chunks doesn't cause stutter.
+  const startAt = nextTime === 0 ? ctx.currentTime + 0.15 : Math.max(ctx.currentTime + 0.02, nextTime);
+  source.start(startAt);
+  nextTime = startAt + audioBuffer.duration;
+  sources.push(source);
+  source.onended = () => {
+    sources = sources.filter((s) => s !== source);
+    maybeFinishSpeaking();
   };
-  currentAudio.play().catch((err) => {
-    addLine("Error", "Could not play audio: " + err.message);
-    setMode("listening", "Connected. Just start talking.");
-  });
+}
+
+function maybeFinishSpeaking() {
+  if (streamDone && sources.length === 0 && mode === "speaking") backToListening();
 }
 
 function stopPlayback() {
-  if (currentAudio) {
-    currentAudio.pause();
-    currentAudio = null;
+  if (streamAbort) {
+    streamAbort.abort();
+    streamAbort = null;
   }
+  for (const source of sources) {
+    source.onended = null;
+    try { source.stop(); } catch (_) {}
+  }
+  sources = [];
+  streamDone = true;
 }
 
 function hangup() {
