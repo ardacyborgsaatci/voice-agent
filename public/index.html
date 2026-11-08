@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice Agent</title>
+<style>
+  :root {
+    --bg: #faf7f2; --card: #ffffff; --text: #2a2420; --muted: #6f655d;
+    --accent: #3b5d46; --accent-text: #ffffff; --border: #e4ddd3;
+    --you: #eef3ef; --agent: #f6efe6; --danger: #a8402f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17140f; --card: #211d17; --text: #f1ebe2; --muted: #a89d90;
+      --accent: #7fb08f; --accent-text: #10170f; --border: #3a342b;
+      --you: #263028; --agent: #2d261d; --danger: #e27a68;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex; justify-content: center; padding: 24px 16px;
+  }
+  main { width: 100%; max-width: 560px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 16px;
+  }
+  .status { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.listening { background: var(--accent); }
+  .dot.recording { background: var(--danger); animation: pulse 0.9s infinite; }
+  .dot.busy { background: #c79a2b; animation: pulse 0.9s infinite; }
+  .dot.speaking { background: #3d7fc4; animation: pulse 0.9s infinite; }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+  .controls { display: flex; gap: 10px; margin-bottom: 14px; }
+  button {
+    font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--card); color: var(--text); cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  #log { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow-y: auto; }
+  .line { padding: 8px 12px; border-radius: 10px; }
+  .line b { display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .line.you { background: var(--you); }
+  .line.agent { background: var(--agent); }
+  .line.error { background: transparent; border: 1px solid var(--danger); color: var(--danger); }
+  .hint { color: var(--muted); font-size: 0.875rem; margin-top: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Voice Agent</h1>
+  <p class="sub">Press start, allow the microphone, and just talk. Talk over the agent to interrupt it.</p>
+
+  <div class="card">
+    <div class="status" role="status" aria-live="polite">
+      <span class="dot" id="dot"></span>
+      <span id="status">Not connected.</span>
+    </div>
+    <div class="controls">
+      <button class="primary" id="start">Start call</button>
+      <button id="hangup" disabled>Hang up</button>
+    </div>
+    <div id="log"></div>
+    <p class="hint">Headphones work best. Your voice is sent to the server to be transcribed and answered.</p>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const statusEl = $("status"), dotEl = $("dot"), logEl = $("log");
+const startBtn = $("start"), hangBtn = $("hangup");
+
+const TICK_MS = 30;
+const CALIBRATION_TICKS = 33;   // ~1 s of silence to learn background noise
+const MIN_SPEECH_MS = 120;      // sound this long counts as speech
+const SILENCE_END_MS = 800;     // quiet this long ends your turn
+const BARGE_IN_MS = 600;        // talking this long over the agent interrupts it
+
+const messages = [];  // conversation so far, sent with every turn (the server keeps no state)
+let stream, ctx, analyser, buf, timer, recorder, chunks = [], currentAudio = null;
+let threshold = 0.01, noise = [], mode = "idle";
+let speechMs = 0, silenceMs = 0, loudMs = 0;
+
+function setMode(next, text) {
+  mode = next;
+  dotEl.className = "dot " + (["listening", "recording", "busy", "speaking"].includes(next) ? next : "");
+  if (text) statusEl.textContent = text;
+}
+
+function addLine(kind, text) {
+  const div = document.createElement("div");
+  div.className = "line " + kind.toLowerCase();
+  const label = document.createElement("b");
+  label.textContent = kind;
+  const body = document.createElement("span");
+  body.textContent = text;
+  div.append(label, body);
+  logEl.append(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function rms() {
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0;
+  for (const v of buf) sum += v * v;
+  return Math.sqrt(sum / buf.length);
+}
+
+async function start() {
+  startBtn.disabled = true;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    });
+  } catch (err) {
+    addLine("Error", "Microphone access was blocked: " + err.message);
+    startBtn.disabled = false;
+    return;
+  }
+  hangBtn.disabled = false;
+  ctx = new AudioContext();
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 1024;
+  ctx.createMediaStreamSource(stream).connect(analyser);
+  buf = new Float32Array(analyser.fftSize);
+
+  noise = [];
+  setMode("calibrating", "Calibrating: stay quiet for a second...");
+  timer = setInterval(tick, TICK_MS);
+}
+
+function tick() {
+  const level = rms();
+
+  if (mode === "calibrating") {
+    noise.push(level);
+    if (noise.length >= CALIBRATION_TICKS) {
+      const sorted = [...noise].sort((a, b) => a - b);
+      threshold = Math.max(sorted[Math.floor(sorted.length / 2)] * 3, 0.01);
+      speechMs = 0;
+      setMode("listening", "Connected. Just start talking.");
+    }
+    return;
+  }
+
+  const isSpeech = level > threshold;
+
+  if (mode === "speaking") {
+    // Only watch for a sustained interruption while the agent talks.
+    loudMs = isSpeech ? loudMs + TICK_MS : 0;
+    if (loudMs >= BARGE_IN_MS) {
+      stopPlayback();
+      speechMs = 0;
+      setMode("listening", "Connected. Just start talking.");
+    }
+  } else if (mode === "listening") {
+    if (isSpeech) {
+      speechMs += TICK_MS;
+      if (speechMs >= MIN_SPEECH_MS) startRecording();
+    } else {
+      speechMs = 0;
+    }
+  } else if (mode === "recording") {
+    if (isSpeech) {
+      silenceMs = 0;
+    } else {
+      silenceMs += TICK_MS;
+      if (silenceMs >= SILENCE_END_MS) stopRecording();
+    }
+  }
+  // mode === "busy": waiting on the server, ignore the mic.
+}
+
+function startRecording() {
+  silenceMs = 0;
+  chunks = [];
+  recorder = new MediaRecorder(stream);
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => sendTurn(new Blob(chunks, { type: recorder.mimeType }));
+  recorder.start();
+  setMode("recording", "Listening to you...");
+}
+
+function stopRecording() {
+  setMode("busy", "Thinking...");
+  recorder.stop();
+}
+
+async function sendTurn(blob) {
+  const form = new FormData();
+  form.append("audio", blob, "speech.webm");
+  form.append("history", JSON.stringify(messages.slice(-20)));
+  try {
+    const res = await fetch("/api/turn", { method: "POST", body: form });
+    if (!res.ok) {
+      let detail = await res.text();
+      try { detail = JSON.parse(detail).detail || detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    if (mode !== "busy") return;  // hung up meanwhile
+    if (!data.reply) {
+      setMode("listening", "Connected. Just start talking.");
+      return;
+    }
+    messages.push({ role: "user", content: data.user_text }, { role: "assistant", content: data.reply });
+    addLine("You", data.user_text);
+    addLine("Agent", data.reply);
+    play(data.audio);
+  } catch (err) {
+    addLine("Error", err.message);
+    if (mode === "busy") setMode("listening", "Connected. Just start talking.");
+  }
+}
+
+function play(b64) {
+  loudMs = 0;
+  setMode("speaking", "Agent speaking... (talk to interrupt)");
+  currentAudio = new Audio("data:audio/wav;base64," + b64);
+  currentAudio.onended = () => {
+    if (mode === "speaking") {
+      speechMs = 0;
+      setMode("listening", "Connected. Just start talking.");
+    }
+  };
+  currentAudio.play().catch((err) => {
+    addLine("Error", "Could not play audio: " + err.message);
+    setMode("listening", "Connected. Just start talking.");
+  });
+}
+
+function stopPlayback() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+}
+
+function hangup() {
+  clearInterval(timer);
+  stopPlayback();
+  if (recorder && recorder.state !== "inactive") {
+    recorder.onstop = null;
+    recorder.stop();
+  }
+  stream.getTracks().forEach((t) => t.stop());
+  ctx.close();
+  setMode("idle", "Call ended.");
+  startBtn.disabled = false;
+  hangBtn.disabled = true;
+}
+
+startBtn.addEventListener("click", start);
+hangBtn.addEventListener("click", hangup);
+</script>
+</body>
+</html>
