@@ -19,15 +19,33 @@ def client() -> OpenAI:
     return _client
 
 
-STT_PROVIDER = os.getenv("STT_PROVIDER", "groq")  # "groq" (default) or "openrouter"
+STT_PROVIDER = os.getenv("STT_PROVIDER", "groq")  # "groq" (default), "openrouter" or "fish"
 OPENROUTER_STT_MODEL = os.getenv("OPENROUTER_STT_MODEL", "openai/whisper-large-v3")
+FISH_STT_MODEL = os.getenv("FISH_STT_MODEL", "transcribe-1-pro")
 
 
 def transcribe(data: bytes, filename: str) -> str:
     if STT_PROVIDER == "openrouter":
         return _transcribe_openrouter(data, filename)
+    if STT_PROVIDER == "fish":
+        return _transcribe_fish(data, filename)
     result = client().audio.transcriptions.create(model=GROQ_STT_MODEL, file=(filename, data))
     return result.text.strip()
+
+
+def _transcribe_fish(data: bytes, filename: str) -> str:
+    """Fish Audio's speech-to-text: the model goes in a header, the answer is JSON with the transcript in `text`."""
+    import httpx
+
+    resp = httpx.post(
+        "https://api.fish.audio/v1/asr",
+        headers={"Authorization": f"Bearer {os.environ['FISH_API_KEY']}", "model": FISH_STT_MODEL},
+        data={"ignore_timestamps": "true", "tag_audio_events": "false", "diarize": "false"},
+        files={"audio": (filename, data)},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return str(resp.json().get("text", "")).strip()
 
 
 def _transcribe_openrouter(data: bytes, filename: str) -> str:
