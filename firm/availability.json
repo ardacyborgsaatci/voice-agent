@@ -1,0 +1,33 @@
+{
+  "note": "Weekly consultation windows in the firm's local time. A window is when an attorney can take first consultations; actual slots are cut from it by the booking code.",
+  "windows": {
+    "dana-hollis": [
+      { "day": "tue", "start": "09:00", "end": "12:00" },
+      { "day": "thu", "start": "13:00", "end": "16:00" }
+    ],
+    "marcus-marr": [
+      { "day": "mon", "start": "09:00", "end": "12:00" },
+      { "day": "wed", "start": "13:00", "end": "16:00" }
+    ],
+    "elena-voss": [
+      { "day": "mon", "start": "10:00", "end": "15:00" },
+      { "day": "tue", "start": "10:00", "end": "15:00" },
+      { "day": "thu", "start": "10:00", "end": "15:00" }
+    ],
+    "tomas-reyes": [
+      { "day": "tue", "start": "10:00", "end": "15:00" },
+      { "day": "wed", "start": "10:00", "end": "15:00" },
+      { "day": "fri", "start": "10:00", "end": "15:00" }
+    ]
+  },
+  "booking": {
+    "horizonDays": 30,
+    "minNoticeHours": 4,
+    "slotStepMinutes": 15,
+    "bufferMinutes": 15,
+    "cancelNoticeHours": 24,
+    "maxActiveBookingsPerPerson": 1,
+    "requiresConflictClear": true,
+    "bufferNote": "The previous booking build enforced 30 minutes while documenting 15, so the new rules code and its tests must match this number exactly."
+  }
+}

@@ -1,12 +1,17 @@
 """
-Hands-free voice call with an AI agent.
+Hands-free voice call with the Dyzania LLP voice line (a fictional firm), in the terminal.
 
 Just talk. The agent detects when you stop, answers out loud, and you can
 interrupt it by talking over it. Use headphones so it doesn't hear itself
 (or set ALLOW_BARGE_IN=false in .env).
 
 Pipeline: mic -> energy VAD (end-of-speech detection) -> Groq Whisper (speech to text)
-          -> Groq LLM (reply) -> Fish Audio TTS (text to speech) -> speakers
+          -> router.py (fixed words for urgent / advice / change turns, the booking dialog, or the Groq chat model
+             with the firm's knowledge) -> Fish Audio TTS (text to speech) -> speakers
+
+It uses the same router, answer checks and booking dialog as the web version (server.py). The dialog state is kept in
+this process instead of being sealed and sent back and forth. Booking works when N8N_BOOKING_BASE and
+N8N_BOOKING_SECRET are set; without them a caller who asks to book is sent to the website. Nothing is logged.
 
 Run:
     pip install -r requirements-terminal.txt
@@ -25,17 +30,21 @@ import numpy as np
 import sounddevice as sd
 import soundfile as sf
 from dotenv import load_dotenv
-from openai import OpenAI
 
 load_dotenv()
+
+import booking_flow  # noqa: E402
+import llm  # noqa: E402
+import router  # noqa: E402
+import spoken  # noqa: E402
 
 FISH_API_KEY = os.environ["FISH_API_KEY"]
 FISH_VOICE_ID = os.environ["FISH_VOICE_ID"]  # a voice model ID from fish.audio
 FISH_TTS_MODEL = os.getenv("FISH_TTS_MODEL", "s2.1-pro-free")
-GROQ_API_KEY = os.environ["GROQ_API_KEY"]
-GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
-GROQ_STT_MODEL = os.getenv("GROQ_STT_MODEL", "whisper-large-v3-turbo")
 ALLOW_BARGE_IN = os.getenv("ALLOW_BARGE_IN", "true").lower() == "true"
+BOOKING_BASE = os.getenv("N8N_BOOKING_BASE", "").strip()
+BOOKING_SECRET = os.getenv("N8N_BOOKING_SECRET", "").strip()
+BOOKING_HEADER = os.getenv("N8N_BOOKING_HEADER", "X-Booking-Secret").strip()
 
 SAMPLE_RATE = 16000
 FRAME_SAMPLES = 480                      # 30 ms at 16 kHz
@@ -45,32 +54,23 @@ SILENCE_END_FRAMES = 800 // FRAME_MS     # 0.8 s of quiet ends your turn
 MIN_SPEECH_FRAMES = 120 // FRAME_MS      # 120 ms of sound counts as speech
 BARGE_IN_FRAMES = 600 // FRAME_MS        # 600 ms of sound interrupts the agent
 
-SYSTEM_PROMPT = (
-    "You are a friendly voice assistant on a phone call. Keep replies short "
-    "(1-3 sentences) and plain text with no markdown, since your reply will be spoken aloud."
-)
+class NoBooking:
+    """Stands in for the booking service when it is not configured: every call fails, so the dialog sends the caller to the website."""
 
-KNOWLEDGE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "knowledge")
+    def slots(self, *args, **kwargs):
+        raise booking_flow.BookingError("not configured")
 
-
-def load_knowledge() -> str:
-    """Read every .txt/.md file in the knowledge folder into one block of text."""
-    if not os.path.isdir(KNOWLEDGE_DIR):
-        return ""
-    parts = []
-    for name in sorted(os.listdir(KNOWLEDGE_DIR)):
-        if name.lower().endswith((".txt", ".md")):
-            with open(os.path.join(KNOWLEDGE_DIR, name), encoding="utf-8") as f:
-                parts.append(f"## {name}\n{f.read().strip()}")
-    return "\n\n".join(parts)
+    book = slots
 
 
-KNOWLEDGE = load_knowledge()
-print(f"Loaded knowledge base: {len(KNOWLEDGE.split())} words" if KNOWLEDGE else "No knowledge base files found.")
+def booking_api():
+    if BOOKING_BASE and BOOKING_SECRET:
+        return booking_flow.HttpBookingApi(BOOKING_BASE, BOOKING_SECRET, header=BOOKING_HEADER)
+    return NoBooking()
 
-# Groq exposes an OpenAI-compatible API, so the OpenAI SDK works with a different base URL.
-llm = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")
-history = []
+
+history = []     # only turns the chat model answered; booking, urgent and advice turns stay out of it
+dialog = None    # the booking dialog's state between turns
 
 frames_q = queue.Queue()        # raw 30 ms mic frames, filled by the audio callback
 utterances_q = queue.Queue()    # finished user utterances, filled by the VAD thread
@@ -134,33 +134,21 @@ def transcribe(audio: np.ndarray) -> str:
     """Speech to text with Groq Whisper."""
     buf = io.BytesIO()
     sf.write(buf, audio, SAMPLE_RATE, format="WAV")
-    result = llm.audio.transcriptions.create(
-        model=GROQ_STT_MODEL,
-        file=("speech.wav", buf.getvalue()),
-    )
-    return result.text.strip()
+    return llm.transcribe(buf.getvalue(), "speech.wav")
 
 
-def ask_llm(user_text: str) -> str:
-    """Send the transcript to Groq's LLM, keeping the conversation history."""
-    history.append({"role": "user", "content": user_text})
-    system = SYSTEM_PROMPT
-    if KNOWLEDGE:
-        system += (
-            "\n\nUse the knowledge base below to answer questions. If the answer is not "
-            "in it, say you don't know rather than guessing.\n\n" + KNOWLEDGE
-        )
-    resp = llm.chat.completions.create(
-        model=GROQ_MODEL,
-        max_tokens=300,
-        messages=[{"role": "system", "content": system}, *history],
-    )
-    reply = resp.choices[0].message.content
-    history.append({"role": "assistant", "content": reply})
-    return reply
+def answer(user_text: str) -> router.Turn:
+    """Decide what answers this turn, and keep the model's history and the booking state up to date."""
+    global dialog
+    turn = router.route(user_text, history, dialog, api=booking_api(), ask_model=llm.ask_model)
+    dialog = turn.state
+    if not turn.private:
+        history.extend([{"role": "user", "content": user_text}, {"role": "assistant", "content": turn.text}])
+        del history[:-20]
+    return turn
 
 
-def speak(text: str) -> None:
+def speak(text: str) -> None:  # text as it should be said: see spoken.speakable
     """Text to speech with Fish Audio TTS, played until done or interrupted."""
     resp = httpx.post(
         "https://api.fish.audio/v1/tts",
@@ -215,9 +203,11 @@ def main() -> None:
                     continue
                 print(f"You: {user_text}")
 
-                reply = ask_llm(user_text)
-                print(f"Agent: {reply}")
-                speak(reply)
+                turn = answer(user_text)
+                print(f"Agent: {turn.text}")
+                if turn.link:
+                    print(f"       ({turn.link.get('label', 'link')}: {turn.link.get('url', '')})")
+                speak(spoken.speakable(turn.text, turn.spell))
             except KeyboardInterrupt:
                 print("\nCall ended.")
                 break

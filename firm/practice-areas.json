@@ -1,0 +1,269 @@
+{
+  "areas": [
+    {
+      "id": "family",
+      "name": "Family law",
+      "summary": "Divorce, child custody and support, protective orders, adoption and paternity.",
+      "attorneys": [
+        "dana-hollis",
+        "elena-voss"
+      ],
+      "consult": {
+        "minutes": 45,
+        "feeUsd": 150,
+        "creditedToRetainer": true
+      },
+      "keywords": [
+        "divorce",
+        "custody",
+        "child support",
+        "visitation",
+        "alimony",
+        "spousal support",
+        "separation",
+        "separated",
+        "prenup",
+        "prenuptial",
+        "adoption",
+        "paternity",
+        "parenting plan",
+        "protective order",
+        "domestic violence",
+        "guardianship of a child"
+      ],
+      "bring": [
+        "Photo ID",
+        "Marriage certificate and any prenuptial agreement",
+        "Recent pay stubs and tax returns",
+        "A list of shared property and debts",
+        "Any court papers you have received"
+      ]
+    },
+    {
+      "id": "injury",
+      "name": "Personal injury",
+      "summary": "Car and truck accidents, slip and fall, dog bites, medical negligence and wrongful death.",
+      "attorneys": [
+        "marcus-marr",
+        "tomas-reyes"
+      ],
+      "consult": {
+        "minutes": 30,
+        "feeUsd": 0,
+        "creditedToRetainer": false
+      },
+      "feeModel": "contingency",
+      "keywords": [
+        "accident",
+        "crash",
+        "collision",
+        "injured",
+        "injury",
+        "slip and fall",
+        "dog bite",
+        "medical malpractice",
+        "wrongful death",
+        "whiplash",
+        "hit and run",
+        "insurance adjuster",
+        "rear-ended",
+        "injuries"
+      ],
+      "bring": [
+        "Photo ID",
+        "Police or incident report",
+        "Photos of the scene and injuries",
+        "Medical records and bills if you have them",
+        "Insurance letters, including any settlement offer"
+      ]
+    },
+    {
+      "id": "employment",
+      "name": "Employment law",
+      "summary": "Wrongful termination, discrimination, harassment, retaliation and unpaid wages.",
+      "attorneys": [
+        "marcus-marr",
+        "tomas-reyes"
+      ],
+      "consult": {
+        "minutes": 30,
+        "feeUsd": 0,
+        "creditedToRetainer": false
+      },
+      "feeModel": "contingency",
+      "keywords": [
+        "fired",
+        "terminated",
+        "laid off",
+        "discrimination",
+        "harassment",
+        "retaliation",
+        "hostile work environment",
+        "unpaid wages",
+        "overtime",
+        "severance",
+        "non-compete",
+        "whistleblower",
+        "eeoc",
+        "demoted",
+        "wrongful termination",
+        "harassed",
+        "harassing"
+      ],
+      "bring": [
+        "Photo ID",
+        "Your offer letter or contract",
+        "Termination or disciplinary letters",
+        "Pay stubs",
+        "A timeline of what happened, with dates"
+      ]
+    },
+    {
+      "id": "estate",
+      "name": "Estate planning and probate",
+      "summary": "Wills, trusts, powers of attorney, guardianship for adults, probate and estate administration.",
+      "attorneys": [
+        "dana-hollis",
+        "elena-voss"
+      ],
+      "consult": {
+        "minutes": 45,
+        "feeUsd": 150,
+        "creditedToRetainer": true
+      },
+      "keywords": [
+        "last will",
+        "my will",
+        "a will",
+        "make a will",
+        "update my will",
+        "living trust",
+        "family trust",
+        "revocable trust",
+        "a trust",
+        "power of attorney",
+        "probate",
+        "executor",
+        "inheritance",
+        "estate planning",
+        "guardianship",
+        "living will",
+        "beneficiary",
+        "heir",
+        "passed away",
+        "deceased"
+      ],
+      "bring": [
+        "Photo ID",
+        "Any existing will, trust or power of attorney",
+        "A list of assets and debts",
+        "Names and contact details of beneficiaries",
+        "For probate: the death certificate"
+      ]
+    }
+  ],
+  "outOfScope": [
+    {
+      "id": "criminal",
+      "name": "Criminal defense",
+      "keywords": [
+        "arrested",
+        "charged with",
+        "criminal",
+        "dui",
+        "dwi",
+        "felony",
+        "misdemeanor",
+        "bail",
+        "jail",
+        "probation"
+      ],
+      "referral": "a criminal defense lawyer through your local bar association's referral service, or a public defender if you cannot afford one"
+    },
+    {
+      "id": "immigration",
+      "name": "Immigration",
+      "keywords": [
+        "visa",
+        "green card",
+        "deportation",
+        "asylum",
+        "citizenship",
+        "immigration",
+        "work permit"
+      ],
+      "referral": "an immigration attorney through your local bar association's referral service"
+    },
+    {
+      "id": "ip",
+      "name": "Intellectual property",
+      "keywords": [
+        "patent",
+        "trademark",
+        "copyright",
+        "licensing"
+      ],
+      "referral": "an intellectual property attorney through your local bar association's referral service"
+    },
+    {
+      "id": "tax",
+      "name": "Tax disputes",
+      "keywords": [
+        "irs",
+        "tax debt",
+        "tax lien",
+        "audit"
+      ],
+      "referral": "a tax attorney or a licensed tax professional"
+    },
+    {
+      "id": "bankruptcy",
+      "name": "Bankruptcy and debt",
+      "keywords": [
+        "bankruptcy",
+        "chapter 7",
+        "chapter 13",
+        "debt collector",
+        "foreclosure"
+      ],
+      "referral": "a bankruptcy attorney through your local bar association's referral service"
+    },
+    {
+      "id": "business",
+      "name": "Business formation and contracts",
+      "keywords": [
+        "llc",
+        "incorporate",
+        "business contract",
+        "startup",
+        "shareholder"
+      ],
+      "referral": "a business attorney through your local bar association's referral service"
+    },
+    {
+      "id": "housing",
+      "name": "Landlord-tenant and housing",
+      "keywords": [
+        "landlord",
+        "tenant",
+        "eviction",
+        "evicted",
+        "notice to quit",
+        "security deposit",
+        "locked out",
+        "lease"
+      ],
+      "referral": "a housing or tenant attorney, or a legal aid office, through your local bar association's referral service"
+    }
+  ],
+  "referralNote": "Dyzania does not recommend a specific outside lawyer. It points people to their local bar association's referral service.",
+  "matchingNotes": "Phrases are matched as whole words or phrases in lowercase text. Before matching, 'real estate', 'in custody' and 'police custody' are removed, because they would otherwise hit estate or custody (family). Single common words such as 'will' and 'trust' are deliberately not keywords.",
+  "serviceArea": {
+    "regionLabel": "Harlow Point and the surrounding area",
+    "options": [
+      "Harlow Point",
+      "Nearby area",
+      "Somewhere else"
+    ]
+  }
+}

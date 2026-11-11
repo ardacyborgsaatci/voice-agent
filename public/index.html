@@ -3,43 +3,33 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Voice Agent</title>
-<meta name="description" content="A hands-free voice agent you talk to like a phone call. Ask it about Marlow & Pine, a fictional coffee roaster.">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#f6f1e8" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#12100d" media="(prefers-color-scheme: dark)">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='20' fill='%232f5a45'/%3E%3Cpath d='M10 18v4M15 14v12M20 10v20M25 14v12M30 18v4' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<title>Voice line - Dyzania LLP</title>
+<meta name="description" content="Talk to the Dyzania voice line like a phone call. It answers questions about the firm and can book a first consultation. Automated, not a lawyer. Fictional firm.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#121212">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231F1F1F'/%3E%3Crect x='13' y='14' width='38' height='5' rx='1.5' fill='%23D4A94F'/%3E%3Crect x='16' y='24' width='6' height='22' rx='1.5' fill='%23fff'/%3E%3Crect x='29' y='24' width='6' height='22' rx='1.5' fill='%23fff'/%3E%3Crect x='42' y='24' width='6' height='22' rx='1.5' fill='%23fff'/%3E%3Crect x='13' y='49' width='38' height='5' rx='1.5' fill='%23D4A94F'/%3E%3C/svg%3E">
 <style>
+  /* Dyzania tokens (brand/tokens.css): dark, one brass accent, pills for buttons. */
   :root {
-    color-scheme: light dark;
-    --bg: #f6f1e8; --surface: #fffdf9; --text: #231f1a; --muted: #5f564d; --border: #ded5c7;
-    --accent: #2f5a45; --accent-hover: #264b39; --on-accent: #ffffff;
-    --danger: #a63d2b; --danger-hover: #8f3324; --on-danger: #ffffff;
-    --you: #dfeae2; --agent: #f7f1e6; --tint: #efe8da; --focus: #2f5a45;
-    --shadow: 0 1px 2px rgba(35, 31, 26, 0.04), 0 18px 40px -24px rgba(35, 31, 26, 0.25);
-    /* One colour per call state. Each is at least 3:1 against the page background. */
-    --s-idle: #8b8073; --s-calibrating: #a87a12; --s-listening: #3f7a5b;
-    --s-recording: #c4693a; --s-busy: #a87a12; --s-speaking: #2b7f86;
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12100d; --surface: #1b1814; --text: #f0e9de; --muted: #aea296; --border: #302a22;
-      --accent: #8cc4a0; --accent-hover: #a3d3b4; --on-accent: #0e1a12;
-      --danger: #ee8a76; --danger-hover: #f4a493; --on-danger: #1d0e0a;
-      --you: #24322a; --agent: #221e18; --tint: #25201a; --focus: #8cc4a0;
-      --shadow: none;
-      --s-idle: #7d7366; --s-calibrating: #d9a93a; --s-listening: #6fbf94;
-      --s-recording: #e58a5c; --s-busy: #d9a93a; --s-speaking: #5bbac2;
-    }
+    color-scheme: dark;
+    --bg: #121212; --surface: #181818; --text: #ffffff; --muted: #b3b3b3; --border: #2e2e2e;
+    --accent: #d4a94f; --accent-hover: #e0ba68; --on-accent: #121212;
+    --danger: #f3727f; --danger-hover: #f58d97; --on-danger: #121212;
+    --you: #252525; --agent: #1f1f1f; --tint: #1f1f1f; --focus: #d4a94f;
+    --shadow: rgba(0, 0, 0, 0.3) 0 8px 8px;
+    /* One colour per call state, all from the brand palette; each is at least 3:1 against the page background. */
+    --s-idle: #7c7c7c; --s-calibrating: #ffa42b; --s-listening: #d4a94f;
+    --s-recording: #539df5; --s-busy: #ffa42b; --s-speaking: #ffffff;
+    --serif: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0; min-height: 100dvh; overflow-x: clip;
-    background: radial-gradient(900px 420px at 15% -8%, color-mix(in srgb, var(--accent) 9%, transparent), transparent), var(--bg);
+    background: var(--bg);
     color: var(--text); font: 16px/1.5 var(--sans);
     padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
              max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
@@ -65,7 +55,7 @@
   .mark { flex: none; width: 40px; height: 40px; margin-top: 2px; }
   .mark circle { fill: var(--accent); }
   .mark path { stroke: var(--on-accent); }
-  h1 { font: 600 1.75rem/1.15 var(--serif); letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+  h1 { font: 700 1.75rem/1.15 var(--serif); letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
   .sub { margin: 0; color: var(--muted); max-width: 40ch; text-wrap: pretty; }
 
   .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 0 8px; }
@@ -117,7 +107,8 @@
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 10px;
     min-height: 52px; padding: 0 30px; border: 2px solid transparent; border-radius: 999px;
-    font: inherit; font-weight: 650; cursor: pointer; touch-action: manipulation;
+    font: inherit; font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px;
+    cursor: pointer; touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     transition: background-color 0.15s, transform 0.1s;
   }
@@ -135,7 +126,7 @@
   /* ---------- transcript ---------- */
   .panel {
     min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
   }
   .panel-head { padding: 16px 22px 14px; border-bottom: 1px solid var(--border); }
   .panel-head h2 { margin: 0; font-size: 0.8125rem; line-height: 1.2; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
@@ -155,6 +146,16 @@
   .line.error { align-self: stretch; max-width: none; }
   .line.error .who { color: var(--danger); }
   .line.error .said { background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 14px; }
+
+  .link-row { align-self: flex-start; }
+  .link-row a {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 9999px;
+    background: var(--accent); color: var(--on-accent); font-size: 0.875rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.4px; text-decoration: none;
+  }
+  .link-row a:hover { background: var(--accent-hover); }
+  .link-row a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .notice { margin: 14px auto 0; max-width: 40ch; text-align: center; color: var(--muted); font-size: 0.8125rem; text-wrap: pretty; }
 
   .empty { margin: auto 0; padding: 8px 0; text-align: center; }
   .empty-title { margin: 0; font: 600 1.25rem/1.3 var(--serif); }
@@ -186,13 +187,17 @@
 <main class="app" id="app" data-mode="idle">
   <section class="call" aria-labelledby="title">
     <header class="brand">
-      <svg class="mark" viewBox="0 0 40 40" aria-hidden="true" focusable="false">
-        <circle cx="20" cy="20" r="20"/>
-        <path d="M10 18v4M15 14v12M20 10v20M25 14v12M30 18v4" fill="none" stroke-width="3" stroke-linecap="round"/>
+      <svg class="mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+        <rect width="64" height="64" rx="14" fill="#1F1F1F"/>
+        <rect x="13" y="14" width="38" height="5" rx="1.5" fill="#D4A94F"/>
+        <rect x="16" y="24" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
+        <rect x="29" y="24" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
+        <rect x="42" y="24" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
+        <rect x="13" y="49" width="38" height="5" rx="1.5" fill="#D4A94F"/>
       </svg>
       <div>
-        <h1 id="title">Voice Agent</h1>
-        <p class="sub">Talk to it like a phone call. Ask about <span translate="no">Marlow&nbsp;&amp;&nbsp;Pine</span>, a fictional coffee roaster.</p>
+        <h1 id="title">Voice line</h1>
+        <p class="sub">Talk to it like a phone call. It answers questions about <span translate="no">Dyzania LLP</span>, a fictional law firm, and can book a first consultation.</p>
       </div>
     </header>
 
@@ -221,7 +226,8 @@
           Hang Up
         </button>
       </div>
-      <p class="hint">Headphones work best. Talk over the agent to interrupt it. Your voice is sent to a server to be transcribed and answered.</p>
+      <p class="hint">Headphones work best. Talk over the agent to interrupt it. Your voice is sent to a server to be transcribed and answered. Please don't describe confidential details.</p>
+      <p class="notice">An automated assistant, not a lawyer. This is general information, not legal advice, and no attorney-client relationship exists until you and the firm sign an engagement letter. The firm, its people and every booking here are invented for a portfolio project.</p>
     </div>
   </section>
 
@@ -232,10 +238,10 @@
         <p class="empty-title">Nothing said yet</p>
         <p class="empty-sub">Start a call, then try saying:</p>
         <ul class="examples">
-          <li>“What’s the Harbor Blend price?”</li>
-          <li>“Are you open on Sunday?”</li>
-          <li>“How does the loyalty card work?”</li>
-          <li>“Do you ship to Canada?”</li>
+          <li>“What are your office hours?”</li>
+          <li>“How much is a first consultation?”</li>
+          <li>“What should I bring to a consultation?”</li>
+          <li>“I’d like to book a consultation.”</li>
         </ul>
       </div>
     </div>
@@ -259,7 +265,8 @@ const SILENCE_END_MS = 600;     // quiet this long ends your turn
 const BARGE_IN_MS = 600;        // talking this long over the agent interrupts it
 const LISTENING_TEXT = "Listening. Just start talking.";
 
-const messages = [];  // conversation so far, sent with every turn (the server keeps no state)
+const messages = [];  // what the chat model may see: only turns it answered (the server keeps no state)
+let dialogState = ""; // the booking dialog's sealed state, handed back with the next turn; the server made it, the page only carries it
 let stream, ctx, analyser, buf, timer, recorder, chunks = [];
 // Streaming playback state: the reply audio arrives as raw PCM and is scheduled chunk by chunk.
 let streamAbort = null, sources = [], nextTime = 0, pcmRate = 24000, carryByte = null, streamDone = true;
@@ -431,6 +438,7 @@ async function sendTurn(blob) {
   const form = new FormData();
   form.append("audio", blob, "speech.webm");
   form.append("history", JSON.stringify(messages.slice(-20)));
+  form.append("state", dialogState);
   const controller = new AbortController();
   streamAbort = controller;
   try {
@@ -474,15 +482,33 @@ async function playStream(reader) {
         backToListening();
         return;
       }
-      messages.push({ role: "user", content: info.user_text }, { role: "assistant", content: info.reply });
+      // Turns the server marks private (booking, urgent, advice) stay on this page only: they are never sent to the chat model.
+      if (!info.private) messages.push({ role: "user", content: info.user_text }, { role: "assistant", content: info.reply });
+      dialogState = typeof info.state === "string" ? info.state : "";
       addLine("You", info.user_text);
       addLine("Agent", info.reply);
+      if (info.link && /^https:\/\//.test(info.link.url || "")) addLink(info.link);
       beginSpeaking(info.sample_rate);
     }
     if (bytes.length) queuePcm(bytes);
   }
   streamDone = true;
   maybeFinishSpeaking();
+}
+
+// A plain link the server asked for, such as the booking page when a booking cannot be finished by voice.
+// Nothing personal is put in it, and only https links are shown.
+function addLink(link) {
+  const a = document.createElement("a");
+  a.href = link.url;
+  a.target = "_blank";
+  a.rel = "noopener";
+  a.textContent = String(link.label || "Open the page").slice(0, 60);
+  const row = document.createElement("div");
+  row.className = "line agent link-row";
+  row.append(a);
+  logEl.append(row);
+  logEl.scrollTop = logEl.scrollHeight;
 }
 
 function beginSpeaking(rate) {
@@ -548,6 +574,7 @@ function stopPlayback() {
 }
 
 function hangup() {
+  dialogState = "";   // hanging up drops a half-finished booking; nothing was saved
   clearInterval(timer);
   clearInterval(clock);
   stopPlayback();

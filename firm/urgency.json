@@ -1,0 +1,134 @@
+{
+  "note": "What counts as time-sensitive. Used by triage and intake to flag a message for an attorney. Flags never give advice and never state a legal deadline as fact.",
+  "dayThreshold": 7,
+  "categories": [
+    {
+      "id": "court_date",
+      "label": "Court date or hearing",
+      "why": "A missed hearing can lead to a default ruling.",
+      "phrases": [
+        "hearing",
+        "court date",
+        "trial date",
+        "appear in court",
+        "must appear",
+        "show cause",
+        "pretrial conference",
+        "arraignment"
+      ],
+      "usesDateWindow": true
+    },
+    {
+      "id": "served_papers",
+      "label": "Served with legal papers",
+      "why": "Papers carry a response deadline that starts when they are served.",
+      "phrases": [
+        "served",
+        "process server",
+        "summons",
+        "subpoena",
+        "complaint was filed",
+        "papers were delivered"
+      ],
+      "usesDateWindow": false
+    },
+    {
+      "id": "filing_deadline",
+      "label": "Filing or response deadline",
+      "why": "A late response can forfeit rights.",
+      "phrases": [
+        "deadline",
+        "due by",
+        "must respond by",
+        "response is due",
+        "statute of limitations",
+        "time limit",
+        "filing date",
+        "have until",
+        "expires on",
+        "last day to",
+        "respond by",
+        "response due"
+      ],
+      "usesDateWindow": true
+    },
+    {
+      "id": "safety",
+      "label": "Safety or protective order",
+      "why": "Someone may be at risk.",
+      "phrases": [
+        "afraid for my safety",
+        "being threatened",
+        "restraining order",
+        "protective order",
+        "abuser",
+        "domestic violence",
+        "hurt me"
+      ],
+      "usesDateWindow": false,
+      "alsoShow": "emergency"
+    },
+    {
+      "id": "detained",
+      "label": "Arrest or detention",
+      "why": "Time matters, and the firm does not handle criminal matters, so a person must point them elsewhere fast.",
+      "phrases": [
+        "arrested",
+        "in jail",
+        "detained",
+        "in custody",
+        "bail hearing"
+      ],
+      "usesDateWindow": false,
+      "alsoShow": "referral"
+    },
+    {
+      "id": "lockout",
+      "label": "Eviction or lockout",
+      "why": "A housing deadline can run quickly. The firm does not handle landlord-tenant cases, so a person must point them elsewhere fast.",
+      "phrases": [
+        "eviction",
+        "evicted",
+        "locked out",
+        "notice to quit",
+        "three day notice"
+      ],
+      "usesDateWindow": true,
+      "alsoShow": "referral"
+    }
+  ],
+  "dateWindowRule": "If a message or a notice contains a date of a hearing, response or filing within dayThreshold days of today, flag it as urgent. A date in the past is also flagged, as 'date has passed', because the situation needs a person.",
+  "neverDo": [
+    "State a deadline as a legal fact. Only repeat a date that the sender or the document gave, and mark it 'as written'.",
+    "Tell anyone whether they have a case.",
+    "Promise that an attorney will act by a given time.",
+    "Reply to opposing counsel or the court. Those go to a person."
+  ],
+  "triageCategories": [
+    "new_inquiry",
+    "existing_client",
+    "court_notice",
+    "opposing_counsel",
+    "scheduling",
+    "billing",
+    "spam",
+    "other"
+  ],
+  "routing": {
+    "urgent": {
+      "to": "urgent@dyzania.example",
+      "owner": "the attorney on duty",
+      "draftReply": "acknowledgement_only"
+    },
+    "court_notice": {
+      "handoff": "extraction"
+    },
+    "new_inquiry": {
+      "handoff": "intake"
+    },
+    "opposing_counsel": {
+      "draftReply": "none",
+      "to": "the matter attorney"
+    }
+  }
+}

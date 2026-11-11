@@ -1,0 +1,42 @@
+{
+  "name": "Dyzania LLP",
+  "short": "Dyzania",
+  "founded": 2014,
+  "fictional": true,
+  "tagline": "Family, injury, employment and estate law for people in Harlow Point.",
+  "city": "Harlow Point",
+  "address": "220 Canal Street, Suite 4, Harlow Point",
+  "domain": "dyzania.example",
+  "phone": "555-0142",
+  "timezone": "America/Chicago",
+  "timezoneNote": "Default chosen by the builder. The owner confirms or changes it before booking goes live.",
+  "emails": {
+    "general": "hello@dyzania.example",
+    "intake": "intake@dyzania.example",
+    "billing": "billing@dyzania.example",
+    "privacy": "privacy@dyzania.example",
+    "urgent": "urgent@dyzania.example"
+  },
+  "officeHours": { "days": ["mon", "tue", "wed", "thu", "fri"], "open": "08:30", "close": "17:30" },
+  "headcount": { "partners": 2, "associates": 2, "paralegals": 2, "intakeCoordinator": 1, "officeManager": 1, "billing": 1, "marketingAndIt": 1, "total": 11 },
+  "staff": [
+    { "id": "dana-hollis", "name": "Dana Hollis", "role": "Founding partner", "attorney": true },
+    { "id": "marcus-marr", "name": "Marcus Marr", "role": "Founding partner", "attorney": true },
+    { "id": "elena-voss", "name": "Elena Voss", "role": "Associate attorney", "attorney": true },
+    { "id": "tomas-reyes", "name": "Tomas Reyes", "role": "Associate attorney", "attorney": true },
+    { "id": "jordan-pike", "name": "Jordan Pike", "role": "Paralegal", "attorney": false },
+    { "id": "mei-tanaka", "name": "Mei Tanaka", "role": "Paralegal", "attorney": false },
+    { "id": "sam-delgado", "name": "Sam Delgado", "role": "Intake coordinator", "attorney": false },
+    { "id": "ruth-adeyemi", "name": "Ruth Adeyemi", "role": "Office manager", "attorney": false },
+    { "id": "nora-lindqvist", "name": "Nora Lindqvist", "role": "Billing and bookkeeping", "attorney": false },
+    { "id": "kofi-mensah", "name": "Kofi Mensah", "role": "Marketing and IT", "attorney": false },
+    { "id": "lena-brandt", "name": "Lena Brandt", "role": "Receptionist", "attorney": false }
+  ],
+  "language": {
+    "notLegalAdvice": "This is general information, not legal advice. No attorney-client relationship exists until you and the firm sign an engagement letter.",
+    "noConfidential": "Please do not include confidential details such as medical records, account numbers or case documents.",
+    "emergency": "If you or someone else is in immediate danger, call 911 or your local emergency number.",
+    "aiDisclosure": "You are talking to an automated assistant, not a lawyer.",
+    "fictional": "Dyzania LLP is a fictional firm made for a portfolio project. All people, matters and documents shown are invented."
+  }
+}
