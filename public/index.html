@@ -407,19 +407,51 @@ function tick() {
   // mode === "busy": waiting on the server, ignore the mic.
 }
 
+// Speech to text runs in the caller's browser (Chrome, Edge, Safari): free, and nothing is sent to a speech provider.
+// Where it is missing, the old path records the audio and the server transcribes it.
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog = null, heard = "";
+
 function startRecording() {
   silenceMs = 0;
-  chunks = [];
-  recorder = new MediaRecorder(stream);
-  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
-  recorder.onstop = () => sendTurn(new Blob(chunks, { type: recorder.mimeType }));
-  recorder.start();
+  if (SpeechRec) {
+    heard = "";
+    recog = new SpeechRec();
+    recog.lang = "en-US";
+    recog.continuous = true;
+    recog.interimResults = false;
+    recog.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) heard += e.results[i][0].transcript + " ";
+      }
+    };
+    recog.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        addLine("Error", "Speech recognition is blocked. Allow the microphone for this site, then press Start Call again.");
+      }
+    };
+    recog.onend = () => {
+      const text = heard.trim();
+      heard = "";
+      recog = null;
+      if (text) sendTurn(null, text);
+      else if (mode === "busy") backToListening();
+    };
+    recog.start();
+  } else {
+    chunks = [];
+    recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => sendTurn(new Blob(chunks, { type: recorder.mimeType }));
+    recorder.start();
+  }
   setMode("recording", "Hearing you…");
 }
 
 function stopRecording() {
   setMode("busy", "Thinking…");
-  recorder.stop();
+  if (recog) recog.stop();
+  else recorder.stop();
 }
 
 function backToListening() {
@@ -434,9 +466,10 @@ function concatBytes(a, b) {
   return out;
 }
 
-async function sendTurn(blob) {
+async function sendTurn(blob, text) {
   const form = new FormData();
-  form.append("audio", blob, "speech.webm");
+  if (text) form.append("text", text);
+  else form.append("audio", blob, "speech.webm");
   form.append("history", JSON.stringify(messages.slice(-20)));
   form.append("state", dialogState);
   const controller = new AbortController();
@@ -581,6 +614,11 @@ function hangup() {
   if (recorder && recorder.state !== "inactive") {
     recorder.onstop = null;
     recorder.stop();
+  }
+  if (recog) {
+    recog.onend = null;
+    recog.stop();
+    recog = null;
   }
   stream.getTracks().forEach((t) => t.stop());
   ctx.close();

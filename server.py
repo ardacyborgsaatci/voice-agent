@@ -48,6 +48,7 @@ BASE_DIR = Path(__file__).parent
 MAX_HISTORY = 20            # messages kept per caller
 MAX_AUDIO_BYTES = 3_000_000  # a spoken turn is a few seconds; this stops anyone uploading something large
 MAX_STATE_CHARS = 8000
+MAX_TEXT_CHARS = 1000        # a spoken turn as text (from the browser's speech recognition)
 TTS_SAMPLE_RATE = 24000     # raw PCM sample rate streamed to the browser
 
 log = logging.getLogger("voice")
@@ -133,17 +134,31 @@ def health():
 
 
 @app.post("/api/turn")
-def turn(audio: UploadFile = File(...), history: str = Form("[]"), state: str = Form("")):
-    """One conversation turn: caller audio plus past messages in, reply text and streamed audio out.
+def turn(
+    audio: UploadFile | None = File(None),
+    text: str = Form(""),
+    history: str = Form("[]"),
+    state: str = Form(""),
+):
+    """One conversation turn: the caller's words in, reply text and streamed audio out.
 
-    The page sends the conversation so far on every turn, and the booking dialog's sealed state, so the server keeps
-    no state (serverless functions can't rely on memory between requests).
+    The words come either as `text` (the browser's own speech recognition, the default page) or as `audio`
+    (transcribed on the server). The page sends the conversation so far on every turn, and the booking dialog's
+    sealed state, so the server keeps no state (serverless functions can't rely on memory between requests).
     """
-    data = audio.file.read(MAX_AUDIO_BYTES + 1)
-    if not data:
-        raise HTTPException(400, "No audio received")
-    if len(data) > MAX_AUDIO_BYTES:
-        raise HTTPException(413, "That recording is too long. Please say a little less at a time.")
+    typed = text.strip()
+    data = b""
+    if typed:
+        if len(typed) > MAX_TEXT_CHARS:
+            raise HTTPException(413, "That is too long. Please say a little less at a time.")
+    else:
+        if audio is None:
+            raise HTTPException(400, "No speech received")
+        data = audio.file.read(MAX_AUDIO_BYTES + 1)
+        if not data:
+            raise HTTPException(400, "No audio received")
+        if len(data) > MAX_AUDIO_BYTES:
+            raise HTTPException(413, "That recording is too long. Please say a little less at a time.")
 
     try:
         messages = read_history(history)
@@ -152,7 +167,7 @@ def turn(audio: UploadFile = File(...), history: str = Form("[]"), state: str = 
     dialog = sealed.unseal(state, STATE_KEY) if state and len(state) <= MAX_STATE_CHARS else None
 
     try:
-        user_text = llm.transcribe(data, audio.filename or "speech.webm")
+        user_text = typed or llm.transcribe(data, audio.filename or "speech.webm")
         if len(user_text) < 2:
             return Response(header_line({"user_text": "", "reply": ""}), media_type="application/octet-stream")
         result = router.route(user_text, messages, dialog, api=booking_api(), ask_model=llm.ask_model)
