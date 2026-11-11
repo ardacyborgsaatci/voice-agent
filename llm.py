@@ -19,9 +19,30 @@ def client() -> OpenAI:
     return _client
 
 
+STT_PROVIDER = os.getenv("STT_PROVIDER", "groq")  # "groq" (default) or "openrouter"
+OPENROUTER_STT_MODEL = os.getenv("OPENROUTER_STT_MODEL", "openai/whisper-large-v3")
+
+
 def transcribe(data: bytes, filename: str) -> str:
+    if STT_PROVIDER == "openrouter":
+        return _transcribe_openrouter(data, filename)
     result = client().audio.transcriptions.create(model=GROQ_STT_MODEL, file=(filename, data))
     return result.text.strip()
+
+
+def _transcribe_openrouter(data: bytes, filename: str) -> str:
+    """OpenRouter's speech-to-text endpoint: multipart upload, JSON answer with the transcript in `text`."""
+    import httpx
+
+    resp = httpx.post(
+        "https://openrouter.ai/api/v1/audio/transcriptions",
+        headers={"Authorization": f"Bearer {os.environ['OPENROUTER_API_KEY']}"},
+        data={"model": OPENROUTER_STT_MODEL},
+        files={"file": (filename, data)},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return str(resp.json().get("text", "")).strip()
 
 
 def ask_model(messages: list[dict], system: str) -> str:
