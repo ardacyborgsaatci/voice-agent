@@ -7,21 +7,24 @@
 <meta name="description" content="Talk to the Dyzania voice line like a phone call. It answers questions about the firm and can book a first consultation. Automated, not a lawyer. Fictional firm.">
 <meta name="robots" content="noindex">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#121212">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231F1F1F'/%3E%3Crect x='13' y='14' width='38' height='5' rx='1.5' fill='%23D4A94F'/%3E%3Crect x='16' y='24' width='6' height='22' rx='1.5' fill='%23fff'/%3E%3Crect x='29' y='24' width='6' height='22' rx='1.5' fill='%23fff'/%3E%3Crect x='42' y='24' width='6' height='22' rx='1.5' fill='%23fff'/%3E%3Crect x='13' y='49' width='38' height='5' rx='1.5' fill='%23D4A94F'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2318181B'/%3E%3Crect x='13' y='14' width='38' height='5' rx='1.5' fill='%23D4A94F'/%3E%3Crect x='16' y='24' width='6' height='22' rx='1.5' fill='%23F5F3EE'/%3E%3Crect x='29' y='24' width='6' height='22' rx='1.5' fill='%23F5F3EE'/%3E%3Crect x='42' y='24' width='6' height='22' rx='1.5' fill='%23F5F3EE'/%3E%3Crect x='13' y='49' width='38' height='5' rx='1.5' fill='%23D4A94F'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600&display=swap">
 <style>
-  /* Dyzania tokens (brand/tokens.css): dark, one brass accent, pills for buttons. */
+  /* Dyzania tokens, design system v2 (brand/tokens.css): near-black, hairlines, serif display, one brass accent. */
   :root {
     color-scheme: dark;
-    --bg: #121212; --surface: #181818; --text: #ffffff; --muted: #b3b3b3; --border: #2e2e2e;
-    --accent: #d4a94f; --accent-hover: #e0ba68; --on-accent: #121212;
-    --danger: #f3727f; --danger-hover: #f58d97; --on-danger: #121212;
-    --you: #252525; --agent: #1f1f1f; --tint: #1f1f1f; --focus: #d4a94f;
-    --shadow: rgba(0, 0, 0, 0.3) 0 8px 8px;
+    --bg: #0b0b0c; --surface: #121214; --text: #f5f3ee; --muted: #a8a6a0; --border: #26262b;
+    --accent: #d4a94f; --accent-hover: #e0ba68; --on-accent: #0b0b0c;
+    --danger: #f3727f; --danger-hover: #f58d97; --on-danger: #0b0b0c;
+    --you: #1f1f23; --agent: #18181b; --tint: #18181b; --focus: #d4a94f;
+    --shadow: none;
     /* One colour per call state, all from the brand palette; each is at least 3:1 against the page background. */
-    --s-idle: #7c7c7c; --s-calibrating: #ffa42b; --s-listening: #d4a94f;
-    --s-recording: #539df5; --s-busy: #ffa42b; --s-speaking: #ffffff;
-    --serif: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --s-idle: #7a7a84; --s-calibrating: #ffa42b; --s-listening: #d4a94f;
+    --s-recording: #539df5; --s-busy: #ffa42b; --s-speaking: #f5f3ee;
+    --serif: "Instrument Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
     --sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
@@ -55,7 +58,7 @@
   .mark { flex: none; width: 40px; height: 40px; margin-top: 2px; }
   .mark circle { fill: var(--accent); }
   .mark path { stroke: var(--on-accent); }
-  h1 { font: 700 1.75rem/1.15 var(--serif); letter-spacing: -0.01em; margin: 0 0 6px; text-wrap: balance; }
+  h1 { font: 400 2.75rem/1 var(--serif); letter-spacing: -0.015em; margin: 0 0 6px; text-wrap: balance; }
   .sub { margin: 0; color: var(--muted); max-width: 40ch; text-wrap: pretty; }
 
   .stage { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 0 8px; }
@@ -99,7 +102,7 @@
   .readout { margin-top: 28px; text-align: center; }
   .status {
     margin: 0; min-height: 2.9em; display: flex; align-items: center; justify-content: center;
-    font-size: 1.25rem; line-height: 1.45; font-weight: 600; text-wrap: balance;
+    font-size: 1.1875rem; line-height: 1.45; font-weight: 500; text-wrap: balance;
   }
   .clock { margin: 4px 0 0; color: var(--muted); font-size: 0.9375rem; font-variant-numeric: tabular-nums; }
   .clock[hidden] { display: block !important; visibility: hidden; }
@@ -107,7 +110,7 @@
   .btn {
     display: inline-flex; align-items: center; justify-content: center; gap: 10px;
     min-height: 52px; padding: 0 30px; border: 2px solid transparent; border-radius: 999px;
-    font: inherit; font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.4px;
+    font: inherit; font-size: 0.9375rem; font-weight: 600; letter-spacing: -0.005em;
     cursor: pointer; touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
     transition: background-color 0.15s, transform 0.1s;
@@ -126,10 +129,10 @@
   /* ---------- transcript ---------- */
   .panel {
     min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
   }
   .panel-head { padding: 16px 22px 14px; border-bottom: 1px solid var(--border); }
-  .panel-head h2 { margin: 0; font-size: 0.8125rem; line-height: 1.2; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .panel-head h2 { margin: 0; font-size: 0.75rem; line-height: 1.2; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
   #log {
     flex: 1; min-height: 220px; max-height: 46dvh; overflow-y: auto; overscroll-behavior: contain;
     padding: 20px 22px; display: flex; flex-direction: column; gap: 14px;
@@ -150,15 +153,15 @@
   .link-row { align-self: flex-start; }
   .link-row a {
     display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 9999px;
-    background: var(--accent); color: var(--on-accent); font-size: 0.875rem; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 1.4px; text-decoration: none;
+    background: var(--accent); color: var(--on-accent); font-size: 0.9375rem; font-weight: 600;
+    text-decoration: none;
   }
   .link-row a:hover { background: var(--accent-hover); }
   .link-row a:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   .notice { margin: 14px auto 0; max-width: 40ch; text-align: center; color: var(--muted); font-size: 0.8125rem; text-wrap: pretty; }
 
   .empty { margin: auto 0; padding: 8px 0; text-align: center; }
-  .empty-title { margin: 0; font: 600 1.25rem/1.3 var(--serif); }
+  .empty-title { margin: 0; font: 400 1.875rem/1.1 var(--serif); letter-spacing: -0.01em; }
   .empty-sub { margin: 6px 0 16px; color: var(--muted); font-size: 0.9375rem; }
   .examples { list-style: none; margin: 0 auto; padding: 0; max-width: 360px; display: grid; gap: 8px; }
   .examples li { padding: 10px 14px; border-radius: 14px; background: var(--tint); text-align: left; text-wrap: pretty; }
@@ -188,11 +191,11 @@
   <section class="call" aria-labelledby="title">
     <header class="brand">
       <svg class="mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <rect width="64" height="64" rx="14" fill="#1F1F1F"/>
+        <rect width="64" height="64" rx="14" fill="#18181B"/>
         <rect x="13" y="14" width="38" height="5" rx="1.5" fill="#D4A94F"/>
-        <rect x="16" y="24" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
-        <rect x="29" y="24" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
-        <rect x="42" y="24" width="6" height="22" rx="1.5" fill="#FFFFFF"/>
+        <rect x="16" y="24" width="6" height="22" rx="1.5" fill="#F5F3EE"/>
+        <rect x="29" y="24" width="6" height="22" rx="1.5" fill="#F5F3EE"/>
+        <rect x="42" y="24" width="6" height="22" rx="1.5" fill="#F5F3EE"/>
         <rect x="13" y="49" width="38" height="5" rx="1.5" fill="#D4A94F"/>
       </svg>
       <div>
